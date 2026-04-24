@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>走势图</title>
+</head>
+
+<body>
+
+    <div class="main-content">
+        <div class="article-container ">
+            
+            <article class="article-card">
+                                    <!-- 情况 B: 历史走势工具箱 -->
+                    <h1>📈 汇率走势工具箱</h1>
+                    <div class="tool-content">
+<style>
+/* 1. 独立作用域隔离 */
+#history-app {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #333;
+    padding: 10px;
+    background: #fff;
+    border-radius: 8px;
+}
+
+/* 2. 控制台：延续你的米色调风格 */
+.history-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    background: #fff9f4; 
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #f6d5b5;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.history-controls .group { display: flex; gap: 12px; align-items: center; }
+
+/* 按钮样式 */
+.btn-toggle {
+    padding: 6px 15px;
+    border: 1px solid #d1d1d1;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.2s;
+}
+.btn-toggle.active {
+    background: #ff6b00;
+    color: #fff;
+    border-color: #ff6b00;
+}
+
+/* 3. 列表表格样式 */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+.history-table th, .history-table td {
+    border-bottom: 1px solid #eee;
+    padding: 12px 8px;
+    text-align: center;
+}
+.history-table th { background: #fafafa; font-size: 0.9rem; color: #666; }
+
+/* 4. 手机横屏提示：核心响应式逻辑 */
+.landscape-tip {
+    display: none;
+    background: rgba(255, 249, 244, 0.98);
+    border: 2px dashed #f6d5b5;
+    padding: 50px 20px;
+    text-align: center;
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+/* 给你的横屏提示加个简单的手机旋转动画 */
+.landscape-tip i {
+    display: block;
+    font-size: 40px;
+    margin-bottom: 10px;
+    animation: rotate-phone 2s infinite;
+}
+
+@keyframes rotate-phone {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(-90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* 1. 基础容器设置：给图表一个稳固的坑位 */
+#chart-wrapper { 
+    width: 100%; 
+    height: 350px; 
+    margin-top: 10px;
+    display: none; /* 默认隐藏，由 JS 切换 */
+}
+
+/* 2. 响应式拦截：手机竖屏状态下，即便 JS 让它 block，我们也强行隐藏它并显示提示 */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+    /* 当处于走势图模式时 */
+    #history-app.mode-chart #chart-wrapper { 
+        display: none !important; 
+    }
+    #history-app.mode-chart .landscape-tip { 
+        display: block !important; 
+    }
+}
+
+/* 3. 响应式放行：PC 端或手机横屏，强行隐藏提示 */
+@media screen and (min-width: 769px), (orientation: landscape) {
+    .landscape-tip { 
+        display: none !important; 
+    }
+}
+
+</style>
+
+<div id="history-app" class="mode-list">
+    <!-- 顶部控制台 -->
+    <div class="history-controls">
+        <div class="group">
+            <label style="cursor:pointer"><input type="radio" name="curr_type" value="USD_THB" checked onchange="updateView()"> USD/THB</label>
+            <label style="cursor:pointer"><input type="radio" name="curr_type" value="USD_CNY" onchange="updateView()"> USD/CNY</label>
+            <label style="cursor:pointer"><input type="radio" name="curr_type" value="USD_PHP" onchange="updateView()"> USD/PHP</label>
+        </div>
+        <div class="group" style="margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; width: 100%;">
+            <span style="font-size: 12px; color: #999; margin-right: 10px;">时间跨度:</span>
+            <label><input type="radio" name="time_range" value="7" onchange="updateTimeRange(7)"> 7天</label>
+            <label><input type="radio" name="time_range" value="15" onchange="updateTimeRange(15)"> 15天</label>
+            <label><input type="radio" name="time_range" value="30" checked onchange="updateTimeRange(30)"> 30天</label>
+            <span style="font-size: 12px; color: #999; margin-left: 15px; margin-right: 5px;">起始日期:</span>
+            <input type="date" id="start-date-input" 
+                   style="border: 1px solid #ddd; border-radius: 4px; padding: 2px 5px; font-size: 12px; color: #666;"
+                   onchange="handleDateSelect(this.value)">
+        </div>
+        <div id="loading-status" style="color: #ff6b00; font-size: 12px; font-weight: bold;">📡 同步中...</div>
+        <div class="group">
+            <button id="btn-list" class="btn-toggle active" onclick="switchMode('list')">📄 列表</button>
+            <button id="btn-chart" class="btn-toggle" onclick="switchMode('chart')">📈 走势</button>
+        </div>
+    </div>
+
+    <!-- 展示区 -->
+    <div id="list-view">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>汇率数值</th>
+                    <th>更新时间</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <tr><td colspan="3" style="padding:40px; color:#999;">正在获取远程历史数据...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="chart-wrapper">
+        <canvas id="rateChart"></canvas>
+    </div>
+
+    <div class="landscape-tip">
+        <p style="font-size: 30px; margin-bottom:10px;">🔄</p>
+        <p><strong>请旋转手机横屏查看 30 天走势对比</strong></p>
+        <p style="color: #999; font-size: 13px; margin-top:10px;">横屏模式下曲线更平滑，对账更精准</p>
+    </div>
+</div>
+
+<script src="chart.js"></script>
+
+                    </div>
+                            </article>
+
+
+
+        </div>
+    </div>
+
+
+
+</body>
+</html>
+
+
