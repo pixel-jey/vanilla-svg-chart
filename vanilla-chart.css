@@ -1,0 +1,103 @@
+/* 1. 独立作用域隔离 */
+#history-app {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #333;
+    padding: 10px;
+    background: #fff;
+    border-radius: 8px;
+}
+
+/* 2. 控制台：延续你的米色调风格 */
+.history-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    background: #fff9f4; 
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #f6d5b5;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.history-controls .group { display: flex; gap: 12px; align-items: center; }
+
+/* 按钮样式 */
+.btn-toggle {
+    padding: 6px 15px;
+    border: 1px solid #d1d1d1;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.2s;
+}
+.btn-toggle.active {
+    background: #ff6b00;
+    color: #fff;
+    border-color: #ff6b00;
+}
+
+/* 3. 列表表格样式 */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+.history-table th, .history-table td {
+    border-bottom: 1px solid #eee;
+    padding: 12px 8px;
+    text-align: center;
+}
+.history-table th { background: #fafafa; font-size: 0.9rem; color: #666; }
+
+/* 4. 手机横屏提示：核心响应式逻辑 */
+.landscape-tip {
+    display: none;
+    background: rgba(255, 249, 244, 0.98);
+    border: 2px dashed #f6d5b5;
+    padding: 50px 20px;
+    text-align: center;
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+/* 给你的横屏提示加个简单的手机旋转动画 */
+.landscape-tip i {
+    display: block;
+    font-size: 40px;
+    margin-bottom: 10px;
+    animation: rotate-phone 2s infinite;
+}
+
+@keyframes rotate-phone {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(-90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* 1. 基础容器设置：给图表一个稳固的坑位 */
+#chart-wrapper { 
+    width: 100%; 
+    height: 350px; 
+    margin-top: 10px;
+    display: none; /* 默认隐藏，由 JS 切换 */
+}
+
+/* 2. 响应式拦截：手机竖屏状态下，即便 JS 让它 block，我们也强行隐藏它并显示提示 */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+    /* 当处于走势图模式时 */
+    #history-app.mode-chart #chart-wrapper { 
+        display: none !important; 
+    }
+    #history-app.mode-chart .landscape-tip { 
+        display: block !important; 
+    }
+}
+
+/* 3. 响应式放行：PC 端或手机横屏，强行隐藏提示 */
+@media screen and (min-width: 769px), (orientation: landscape) {
+    .landscape-tip { 
+        display: none !important; 
+    }
+}
